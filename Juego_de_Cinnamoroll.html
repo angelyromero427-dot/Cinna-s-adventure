@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cinnamoroll y el Jardín Mágico de Recetas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for cute typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+        }
+
+        body {
+            background-color: #BFE6FF;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* Custom Kawaii Scrollbars & Shadows */
+        .kawaii-shadow {
+            box-shadow: 0 10px 25px -5px rgba(255, 182, 193, 0.5), 0 8px 10px -6px rgba(175, 216, 245, 0.5);
+        }
+
+        .kawaii-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            border: 4px solid #FFD1DC;
+            border-radius: 2rem;
+        }
+
+        .btn-kawaii {
+            background: linear-gradient(135deg, #FFB6C1 0%, #FF99AC 100%);
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 6px 0 #E57388;
+            transition: all 0.15s ease;
+        }
+
+        .btn-kawaii:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #E57388;
+        }
+
+        .btn-blue {
+            background: linear-gradient(135deg, #A0C4FF 0%, #70A6FF 100%);
+            box-shadow: 0 6px 0 #4A85E6;
+        }
+
+        .btn-blue:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #4A85E6;
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #D8B4F8 0%, #B388EB 100%);
+            box-shadow: 0 6px 0 #8B5FBF;
+        }
+
+        .btn-purple:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #8B5FBF;
+        }
+
+        /* D-Pad Buttons for Touch */
+        .dpad-btn {
+            background: rgba(255, 255, 255, 0.85);
+            border: 3px solid #FFB6C1;
+            box-shadow: 0 4px 0 #FF99AC;
+        }
+        .dpad-btn:active {
+            background: #FFD1DC;
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #FF99AC;
+        }
+
+        /* Canvas fit */
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: #D8F0FF;
+        }
+
+        /* Pulse Animations */
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+        .animate-floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 209, 220, 0.8)); }
+            50% { filter: drop-shadow(0 0 15px rgba(255, 182, 193, 1)); }
+        }
+        .animate-glow {
+            animation: pulse-glow 2s infinite;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen m-0 p-0 overflow-hidden select-none bg-sky-100">
+
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI OVERLAY: TOP HUD (Playing mode) -->
+    <div id="hudOverlay" class="fixed top-3 left-0 right-0 px-4 flex justify-between items-center pointer-events-none z-10 hidden">
+        <!-- Vidas y Recetas -->
+        <div class="flex items-center gap-3">
+            <!-- Corazones -->
+            <div class="kawaii-card px-4 py-2 flex items-center gap-2 pointer-events-auto">
+                <span class="text-xs uppercase font-bold text-pink-400 hidden sm:inline">Energía:</span>
+                <div id="heartsContainer" class="flex gap-1 text-xl text-pink-500">
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+            </div>
+            <!-- Contador Recetas -->
+            <div class="kawaii-card px-4 py-2 flex items-center gap-2 pointer-events-auto">
+                <i class="fa-solid fa-book-open text-sky-400 text-lg"></i>
+                <span id="recipeCounter" class="text-lg font-extrabold text-sky-600">0 / 5</span>
+            </div>
+        </div>
+
+        <!-- Botones de Control HUD -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="btnMute" class="w-11 h-11 rounded-full kawaii-card flex items-center justify-center text-sky-500 hover:text-sky-700 text-lg shadow-md transition">
+                <i id="muteIcon" class="fa-solid fa-volume-high"></i>
+            </button>
+            <button id="btnOpenBook" class="btn-kawaii text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
+                <i class="fa-solid fa-book-bookmark"></i>
+                <span class="hidden sm:inline">Recetario</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TOUCH CONTROLS (MOBILE D-PAD) -->
+    <div id="touchControls" class="fixed bottom-6 left-6 z-20 pointer-events-auto grid grid-cols-3 gap-2 w-36 h-36 hidden sm:hidden">
+        <div></div>
+        <button id="btnUp" class="dpad-btn rounded-xl flex items-center justify-center text-pink-400 text-xl font-bold active:bg-pink-100">
+            <i class="fa-solid fa-chevron-up"></i>
+        </button>
+        <div></div>
+        <button id="btnLeft" class="dpad-btn rounded-xl flex items-center justify-center text-pink-400 text-xl font-bold active:bg-pink-100">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div class="flex items-center justify-center">
+            <div class="w-4 h-4 bg-pink-300 rounded-full"></div>
+        </div>
+        <button id="btnRight" class="dpad-btn rounded-xl flex items-center justify-center text-pink-400 text-xl font-bold active:bg-pink-100">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <div></div>
+        <button id="btnDown" class="dpad-btn rounded-xl flex items-center justify-center text-pink-400 text-xl font-bold active:bg-pink-100">
+            <i class="fa-solid fa-chevron-down"></i>
+        </button>
+        <div></div>
+    </div>
+
+    <!-- START SCREEN OVERLAY -->
+    <div id="startScreen" class="fixed inset-0 bg-sky-200/90 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+        <div class="kawaii-card max-w-lg w-full p-6 text-center animate-floating kawaii-shadow relative overflow-hidden">
+            <!-- Decorative cloud SVG background elements -->
+            <div class="absolute -top-6 -right-6 text-pink-200 text-7xl opacity-40"><i class="fa-solid fa-cloud"></i></div>
+            <div class="absolute -bottom-6 -left-6 text-sky-200 text-7xl opacity-40"><i class="fa-solid fa-cloud"></i></div>
+
+            <div class="relative z-10">
+                <!-- Title Badge -->
+                <div class="inline-block bg-pink-100 text-pink-500 font-bold px-4 py-1 rounded-full text-xs tracking-widest uppercase mb-2 border border-pink-300">
+                    Aventura Sanrio Kawaii
+                </div>
+
+                <h1 class="text-3xl sm:text-4xl font-black text-sky-600 mb-2 drop-shadow-sm">
+                    Cinnamoroll <span class="text-pink-400">&</span> El Jardín Mágico
+                </h1>
+
+                <p class="text-gray-600 text-sm sm:text-base mb-4 leading-relaxed font-semibold">
+                    ¡Oh no! La traviesa <span class="text-purple-500 font-bold">Kuromi</span> ha escondido las páginas del libro secreto de postres de <span class="text-sky-500 font-bold">Cinnamoroll</span> por todo el Jardín de Nubes. 
+                </p>
+
+                <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-3 mb-5 text-left text-xs sm:text-sm text-sky-800 space-y-1">
+                    <div class="font-bold text-sky-600 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-star text-yellow-400"></i> ¿Cómo Jugar?
+                    </div>
+                    <p><i class="fa-solid fa-arrows-up-down-left-right text-pink-400 w-5"></i> Mantean las teclas <b>WASD</b> / <b>Flechas</b> o usa la cruceta táctil para moverte.</p>
+                    <p><i class="fa-solid fa-scroll text-pink-400 w-5"></i> Encuentra las <b>5 páginas mágicas</b> esparcidas en el mapa.</p>
+                    <p><i class="fa-solid fa-skull text-purple-400 w-5"></i> Evita las trampas moradas de Kuromi para no perder energía.</p>
+                </div>
+
+                <button id="btnStartGame" class="btn-kawaii text-white text-xl font-black px-8 py-3 rounded-full w-full uppercase tracking-wider transform transition hover:scale-105 active:scale-95">
+                    ¡Empezar Aventura! ✨
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECIPE BOOK MODAL -->
+    <div id="recipeModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4 hidden">
+        <div class="kawaii-card max-w-xl w-full p-6 relative max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center pb-3 border-b-2 border-pink-200 mb-4">
+                <h2 class="text-2xl font-black text-sky-600 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-pink-400"></i> Recetario de Cinnamoroll
+                </h2>
+                <button id="btnCloseBook" class="w-9 h-9 bg-pink-100 text-pink-500 hover:bg-pink-200 rounded-full font-bold flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Recipe Grid list -->
+            <div id="recipeList" class="overflow-y-auto space-y-3 pr-1 flex-1">
+                <!-- Items populated dynamically by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- VICTORY OVERLAY -->
+    <div id="victoryScreen" class="fixed inset-0 bg-pink-200/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="kawaii-card max-w-lg w-full p-6 text-center animate-floating shadow-2xl relative overflow-hidden">
+            <div class="text-6xl text-yellow-300 mb-2 animate-bounce">👑</div>
+            <h2 class="text-3xl sm:text-4xl font-black text-pink-500 mb-1">¡Recetario Completo!</h2>
+            <p class="text-sky-600 font-bold mb-4 text-sm sm:text-base">
+                ¡Gracias a ti, Cinnamoroll puede hornear deliciosos postres para todos sus amigos! Kuromi promete portarse bien... por ahora.
+            </p>
+
+            <div class="bg-white/80 rounded-2xl p-4 border-2 border-pink-300 mb-5 text-left">
+                <div class="font-extrabold text-pink-400 text-center text-lg mb-2">✨ Postres Desbloqueados ✨</div>
+                <div id="victoryRecipesSummary" class="grid grid-cols-2 gap-2 text-xs font-bold text-gray-700">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <button id="btnRestartGame" class="btn-blue text-white text-lg font-black px-8 py-3 rounded-full w-full uppercase tracking-wider transition hover:scale-105 active:scale-95">
+                ¡Jugar De Nuevo! 🎀
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER OVERLAY -->
+    <div id="gameOverScreen" class="fixed inset-0 bg-purple-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="kawaii-card max-w-md w-full p-6 text-center shadow-2xl">
+            <div class="text-5xl text-purple-400 mb-2">😈</div>
+            <h2 class="text-3xl font-black text-purple-600 mb-2">¡Travesura Completada!</h2>
+            <p class="text-gray-600 font-semibold mb-6 text-sm">
+                Cinnamoroll se quedó sin energía por las trampas de Kuromi. ¡Inténtalo otra vez!
+            </p>
+            <button id="btnRetryGame" class="btn-purple text-white text-lg font-black px-8 py-3 rounded-full w-full uppercase tracking-wider transition hover:scale-105 active:scale-95">
+                Reintentar 💫
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN GAME LOGIC SCRIPTS -->
+    <script>
+        /**
+         * CINNAMOROLL & KUROMI MAGICAL GARDEN GAME
+         * Pure Canvas 2D + Web Audio API + Responsive Tailwind Interface
+         */
+
+        // Audio Controller using Web Audio API
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+            }
+
+            playTone(freq, duration, type = 'sine', volume = 0.1) {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            collect() {
+                this.init();
+                // Cute harp arpeggio
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 0.15, 'sine', 0.15), idx * 60);
+                });
+            }
+
+            hurt() {
+                this.init();
+                // Descending boing tone
+                if (this.muted || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.25);
+                } catch(e) {}
+            }
+
+            win() {
+                this.init();
+                const melody = [523.25, 659.25, 783.99, 880, 987.77, 1046.50];
+                melody.forEach((freq, idx) => {
+                    setTimeout(() => this.playTone(freq, 0.25, 'triangle', 0.2), idx * 100);
+                });
+            }
+        }
+
+        const audio = new SoundFX();
+
+        // Recipe Data Definitions
+        const RECIPES = [
+            {
+                id: 1,
+                title: "Rollo de Canela Imperial",
+                desc: "Esponjoso, glaseado con crema dulce de nubes y un toque de canela dorada.",
+                icon: "fa-cookie-bite",
+                color: "#E5AA70",
+                x: 350,
+                y: 350,
+                landmark: "Cerca de Café Cinnamon"
+            },
+            {
+                id: 2,
+                title: "Pastel de Fresas Nube",
+                desc: "Bizcocho súper suave decorado con fresas del jardín mágico y chantilly.",
+                icon: "fa-cake-candles",
+                color: "#FF85A1",
+                x: 1450,
+                y: 320,
+                landmark: "En el Puentecito Nube"
+            },
+            {
+                id: 3,
+                title: "Café Latte Esponjoso",
+                desc: "Café cremoso coronado con espuma en forma de las orejitas de Cinnamoroll.",
+                icon: "fa-mug-hot",
+                color: "#B5835A",
+                x: 1650,
+                y: 1150,
+                landmark: "El Bosque de Algodón"
+            },
+            {
+                id: 4,
+                title: "Donas Arcoíris Mágicas",
+                desc: "Horneadas con chispas de colores centelleantes que flotan en el aire.",
+                icon: "fa-circle-dot",
+                color: "#FFB3C6",
+                x: 400,
+                y: 1250,
+                landmark: "El Jardín de Estrellas"
+            },
+            {
+                id: 5,
+                title: "Parfait de Estrellas",
+                desc: "Copa helada con capas de moras frescas, galletas y estrellas crujientes.",
+                icon: "fa-ice-cream",
+                color: "#A2D2FF",
+                x: 1000,
+                y: 750,
+                landmark: "El Gazebo Secreto"
+            }
+        ];
+
+        // Canvas Setup & Global Game State
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const WORLD_WIDTH = 2000;
+        const WORLD_HEIGHT = 1500;
+
+        let camera = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
+
+        let keys = {
+            up: false,
+            down: false,
+            left: false,
+            right: false
+        };
+
+        // Game Entities
+        let player = {
+            x: 1000,
+            y: 700,
+            radius: 26,
+            speed: 5,
+            vx: 0,
+            vy: 0,
+            facing: 'right',
+            animFrame: 0,
+            earOffset: 0,
+            hearts: 3,
+            maxHearts: 3,
+            invulnerableTimer: 0
+        };
+
+        let items = [];
+        let hazards = [];
+        let particles = [];
+        let environmentDecor = [];
+        let kuromiNPC = { x: 1000, y: 700, visible: false, waveAnim: 0 };
+
+        let collectedRecipeIds = new Set();
+        let gameState = 'START'; // START, PLAYING, RECIPE_BOOK, VICTORY, GAME_OVER
+
+        // Responsive Resize
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            camera.width = canvas.width;
+            camera.height = canvas.height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Level Initialization
+        function initGame() {
+            player.x = 1000;
+            player.y = 850;
+            player.hearts = 3;
+            player.invulnerableTimer = 0;
+            collectedRecipeIds.clear();
+            kuromiNPC.visible = false;
+
+            // Reset Items from recipe catalog
+            items = RECIPES.map(r => ({
+                ...r,
+                collected: false,
+                floatOffset: Math.random() * Math.PI * 2
+            }));
+
+            // Generate Hazards (Kuromi Skulls / Thorny Purple Bows)
+            hazards = [
+                { x: 600, y: 400, radius: 22, vx: 2, vy: 0, minX: 450, maxX: 750 },
+                { x: 1300, y: 500, radius: 22, vx: 0, vy: 2.5, minY: 350, maxY: 650 },
+                { x: 700, y: 1100, radius: 22, vx: 2.2, vy: 0, minX: 550, maxX: 900 },
+                { x: 1400, y: 1050, radius: 22, vx: -2, vy: 1.5, minX: 1200, maxX: 1600, minY: 950, maxY: 1200 },
+                { x: 800, y: 250, radius: 22, vx: 0, vy: -2, minY: 150, maxY: 400 },
+                { x: 1200, y: 1300, radius: 22, vx: 2.5, vy: -2.5, minX: 1000, maxX: 1400, minY: 1100, maxY: 1400 }
+            ];
+
+            // Generate Map Environment Decorations (Trees, Flowers, Clouds)
+            environmentDecor = [];
+            // Cotton Candy Trees (Pink & Blue)
+            for (let i = 0; i < 40; i++) {
+                environmentDecor.push({
+                    type: 'tree',
+                    x: Math.random() * (WORLD_WIDTH - 100) + 50,
+                    y: Math.random() * (WORLD_HEIGHT - 100) + 50,
+                    color: Math.random() > 0.5 ? '#FFB6C1' : '#BFE6FF',
+                    size: 35 + Math.random() * 20
+                });
+            }
+
+            // Flowers
+            for (let i = 0; i < 70; i++) {
+                environmentDecor.push({
+                    type: 'flower',
+                    x: Math.random() * WORLD_WIDTH,
+                    y: Math.random() * WORLD_HEIGHT,
+                    color: ['#FFF', '#FFD1DC', '#FFF5B8', '#E2C6FF'][Math.floor(Math.random() * 4)],
+                    size: 6 + Math.random() * 6
+                });
+            }
+
+            // Ambient floating particles
+            particles = [];
+            for (let i = 0; i < 35; i++) {
+                particles.push({
+                    x: Math.random() * WORLD_WIDTH,
+                    y: Math.random() * WORLD_HEIGHT,
+                    size: Math.random() * 4 + 2,
+                    speedY: -0.3 - Math.random() * 0.4,
+                    alpha: Math.random() * 0.7 + 0.3
+                });
+            }
+
+            updateHUD();
+        }
+
+        // INPUT LISTENERS
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = true;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = true;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keys.up = false;
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keys.down = false;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+        });
+
+        // Touch Control Listeners
+        function setupTouchButton(btnId, keyName) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+
+            const startAction = (e) => {
+                e.preventDefault();
+                keys[keyName] = true;
+                audio.init();
+            };
+
+            const endAction = (e) => {
+                e.preventDefault();
+                keys[keyName] = false;
+            };
+
+            btn.addEventListener('touchstart', startAction, { passive: false });
+            btn.addEventListener('touchend', endAction, { passive: false });
+            btn.addEventListener('mousedown', startAction);
+            btn.addEventListener('mouseup', endAction);
+            btn.addEventListener('mouseleave', endAction);
+        }
+
+        setupTouchButton('btnUp', 'up');
+        setupTouchButton('btnDown', 'down');
+        setupTouchButton('btnLeft', 'left');
+        setupTouchButton('btnRight', 'right');
+
+        // GAME UPDATES
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            // Player movement calculation
+            player.vx = 0;
+            player.vy = 0;
+
+            if (keys.up) player.vy = -player.speed;
+            if (keys.down) player.vy = player.speed;
+            if (keys.left) {
+                player.vx = -player.speed;
+                player.facing = 'left';
+            }
+            if (keys.right) {
+                player.vx = player.speed;
+                player.facing = 'right';
+            }
+
+            // Diagonal speed normalize
+            if (player.vx !== 0 && player.vy !== 0) {
+                player.vx *= 0.7071;
+                player.vy *= 0.7071;
+            }
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Boundary checks
+            player.x = Math.max(player.radius + 20, Math.min(WORLD_WIDTH - player.radius - 20, player.x));
+            player.y = Math.max(player.radius + 20, Math.min(WORLD_HEIGHT - player.radius - 20, player.y));
+
+            // Animation tick
+            if (player.vx !== 0 || player.vy !== 0) {
+                player.animFrame += 0.15;
+                player.earOffset = Math.sin(player.animFrame * 2) * 4;
+            } else {
+                player.earOffset = Math.sin(Date.now() / 300) * 2;
+            }
+
+            if (player.invulnerableTimer > 0) {
+                player.invulnerableTimer--;
+            }
+
+            // Camera smoothly follows player
+            camera.x = player.x - camera.width / 2;
+            camera.y = player.y - camera.height / 2;
+            camera.x = Math.max(0, Math.min(WORLD_WIDTH - camera.width, camera.x));
+            camera.y = Math.max(0, Math.min(WORLD_HEIGHT - camera.height, camera.y));
+
+            // Recipe Page Pickup Check
+            items.forEach(item => {
+                if (!item.collected) {
+                    const dist = Math.hypot(player.x - item.x, player.y - item.y);
+                    if (dist < player.radius + 25) {
+                        item.collected = true;
+                        collectedRecipeIds.add(item.id);
+                        audio.collect();
+                        spawnPickupSparkles(item.x, item.y);
+                        updateHUD();
+
+                        // Check Win Condition
+                        if (collectedRecipeIds.size === RECIPES.length) {
+                            triggerVictory();
+                        }
+                    }
+                }
+            });
+
+            // Hazards Update & Collision
+            hazards.forEach(h => {
+                h.x += h.vx;
+                h.y += h.vy;
+
+                if (h.minX && (h.x < h.minX || h.x > h.maxX)) h.vx *= -1;
+                if (h.minY && (h.y < h.minY || h.y > h.maxY)) h.vy *= -1;
+
+                if (player.invulnerableTimer === 0) {
+                    const dist = Math.hypot(player.x - h.x, player.y - h.y);
+                    if (dist < player.radius + h.radius - 5) {
+                        // Hurt player
+                        player.hearts--;
+                        player.invulnerableTimer = 60; // ~1 sec invulnerability
+                        audio.hurt();
+                        updateHUD();
+
+                        if (player.hearts <= 0) {
+                            triggerGameOver();
+                        }
+                    }
+                }
+            });
+
+            // Ambient Particles Update
+            particles.forEach(p => {
+                p.y += p.speedY;
+                if (p.y < 0) {
+                    p.y = WORLD_HEIGHT;
+                    p.x = Math.random() * WORLD_WIDTH;
+                }
+            });
+        }
+
+        function spawnPickupSparkles(x, y) {
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 6 + 3,
+                    life: 30,
+                    color: ['#FFD1DC', '#FFF5B8', '#BFE6FF'][Math.floor(Math.random() * 3)]
+                });
+            }
+        }
+
+        // CANVAS RENDERING
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            // Apply camera translate
+            ctx.translate(-camera.x, -camera.y);
+
+            // 1. Draw World Background (Pastel Grass & Paths)
+            drawWorldBackground();
+
+            // 2. Draw Environment Decorations (Below player)
+            environmentDecor.forEach(d => {
+                if (d.type === 'flower') drawFlower(d.x, d.y, d.color, d.size);
+                if (d.type === 'tree') drawTree(d.x, d.y, d.color, d.size);
+            });
+
+            // 3. Draw Café Cinnamon & Structures
+            drawCafeCinnamon(250, 200);
+
+            // 4. Draw Items (Recipe Pages)
+            items.forEach(item => {
+                if (!item.collected) {
+                    item.floatOffset += 0.05;
+                    const floatY = item.y + Math.sin(item.floatOffset) * 6;
+                    drawRecipePage(item.x, floatY, item.color);
+                }
+            });
+
+            // 5. Draw Hazards (Kuromi Skulls)
+            hazards.forEach(h => {
+                drawKuromiHazard(h.x, h.y, h.radius);
+            });
+
+            // 6. Draw Player (Cinnamoroll)
+            if (player.invulnerableTimer % 6 < 3) { // Flashes when hurt
+                drawCinnamoroll(player.x, player.y, player.facing, player.earOffset);
+            }
+
+            // 7. Draw Kuromi NPC (at victory location)
+            if (kuromiNPC.visible) {
+                drawKuromiNPC(kuromiNPC.x, kuromiNPC.y);
+            }
+
+            // 8. Draw Ambient & Sparkle Particles
+            particles.forEach((p, index) => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha || 0.8;
+                ctx.fillStyle = p.color || '#FFF';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Sparkle particles with lifetime
+                if (p.life !== undefined) {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+                    if (p.life <= 0) particles.splice(index, 1);
+                }
+            });
+
+            ctx.restore();
+
+            // Request next frame
+            requestAnimationFrame(() => {
+                update();
+                draw();
+            });
+        }
+
+        // CANVAS DRAWING HELPERS (Sanrio Aesthetic Vectors)
+        function drawWorldBackground() {
+            // Main Pastel Grass Gradient
+            const grad = ctx.createLinearGradient(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+            grad.addColorStop(0, '#D4F1F9');
+            grad.addColorStop(0.5, '#E6F8FF');
+            grad.addColorStop(1, '#D8E2DC');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+            // Cobblestone/Cloud Paths
+            ctx.fillStyle = '#FFFFFF88';
+
+            // Path to Café
+            ctx.beginPath();
+            ctx.ellipse(350, 350, 180, 100, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Central Plaza
+            ctx.beginPath();
+            ctx.ellipse(1000, 750, 260, 180, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cloud River / Bridge
+            ctx.fillStyle = '#BEE3F888';
+            ctx.beginPath();
+            ctx.moveTo(1300, 0);
+            ctx.bezierCurveTo(1400, 400, 1200, 900, 1500, WORLD_HEIGHT);
+            ctx.lineTo(1650, WORLD_HEIGHT);
+            ctx.bezierCurveTo(1350, 900, 1550, 400, 1450, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Bridge over river
+            ctx.fillStyle = '#FFD1DC';
+            ctx.fillRect(1330, 300, 140, 60);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(1330, 305, 140, 8);
+            ctx.fillRect(1330, 347, 140, 8);
+        }
+
+        function drawCinnamoroll(x, y, facing, earOffset) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            if (facing === 'left') ctx.scale(-1, 1);
+
+            // Shadow
+            ctx.fillStyle = 'rgba(160, 196, 255, 0.35)';
+            ctx.beginPath();
+            ctx.ellipse(0, 22, 22, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Body
+            ctx.fillStyle = '#FFFFFF';
+            ctx.strokeStyle = '#D0E1F9';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(0, 8, 16, 14, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Cinnamon Roll Curled Tail
+            ctx.beginPath();
+            ctx.arc(-14, 8, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.stroke();
+
+            // Head
+            ctx.beginPath();
+            ctx.ellipse(0, -8, 26, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Long Floppy Ears
+            ctx.fillStyle = '#FFFFFF';
+
+            // Left Ear
+            ctx.beginPath();
+            ctx.moveTo(-18, -10);
+            ctx.bezierCurveTo(-38 - earOffset, -20, -45 - earOffset, 5, -28, 5);
+            ctx.bezierCurveTo(-18, 5, -15, -5, -18, -10);
+            ctx.fill();
+            ctx.stroke();
+
+            // Right Ear
+            ctx.beginPath();
+            ctx.moveTo(18, -10);
+            ctx.bezierCurveTo(38 + earOffset, -20, 45 + earOffset, 5, 28, 5);
+            ctx.bezierCurveTo(18, 5, 15, -5, 18, -10);
+            ctx.fill();
+            ctx.stroke();
+
+            // Blue Eyes (Classic Sanrio Look)
+            ctx.fillStyle = '#4A90E2';
+            ctx.beginPath();
+            ctx.ellipse(-10, -9, 3, 4.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(10, -9, 3, 4.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye highlights
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(-11, -10, 1.2, 0, Math.PI * 2);
+            ctx.arc(9, -10, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pink Cheek Blushes
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.ellipse(-16, -4, 5, 3, 0, 0, Math.PI * 2);
+            ctx.ellipse(16, -4, 5, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cute Smile
+            ctx.strokeStyle = '#4A90E2';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, -6, 3, 0.1 * Math.PI, 0.9 * Math.PI);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawRecipePage(x, y, glowColor) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Aura Glow
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = 18;
+
+            // Golden Magic Scroll / Page
+            ctx.fillStyle = '#FFFDF0';
+            ctx.strokeStyle = '#F3D58C';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(-16, -20, 32, 40, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Recipe page details / ribbon
+            ctx.fillStyle = glowColor;
+            ctx.fillRect(-12, -14, 24, 4);
+            ctx.fillStyle = '#E5C07B';
+            ctx.fillRect(-10, -4, 20, 3);
+            ctx.fillRect(-10, 3, 15, 3);
+            ctx.fillRect(-10, 10, 18, 3);
+
+            // Sparkle Star Icon
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(8, -12, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawKuromiHazard(x, y, radius) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Purple Aura
+            ctx.shadowColor = '#B388EB';
+            ctx.shadowBlur = 10;
+
+            // Purple Skull / Jester Token
+            ctx.fillStyle = '#3D2C4D';
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Jester Ear Points
+            ctx.fillStyle = '#C8A2C8';
+            ctx.beginPath();
+            ctx.moveTo(-12, -10);
+            ctx.lineTo(-20, -22);
+            ctx.lineTo(-4, -16);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(12, -10);
+            ctx.lineTo(20, -22);
+            ctx.lineTo(4, -16);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cute Skull Face (Pink)
+            ctx.fillStyle = '#FF99AC';
+            ctx.beginPath();
+            ctx.arc(-6, -2, 3, 0, Math.PI * 2);
+            ctx.arc(6, -2, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mischievous mouth
+            ctx.strokeStyle = '#FF99AC';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-5, 6);
+            ctx.lineTo(0, 9);
+            ctx.lineTo(5, 6);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawKuromiNPC(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Black Jester Hat Body
+            ctx.fillStyle = '#2A2438';
+            ctx.beginPath();
+            ctx.ellipse(0, -6, 22, 16, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pointy Ears
+            ctx.beginPath();
+            ctx.moveTo(-14, -12);
+            ctx.quadraticCurveTo(-30, -35, -24, -38);
+            ctx.quadraticCurveTo(-10, -28, -6, -18);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(14, -12);
+            ctx.quadraticCurveTo(30, -35, 24, -38);
+            ctx.quadraticCurveTo(10, -28, 6, -18);
+            ctx.fill();
+
+            // Pink Skull Emblem on Hat
+            ctx.fillStyle = '#FF85A1';
+            ctx.beginPath();
+            ctx.arc(0, -14, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Face
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 18, 14, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Slanted Winking Eyes
+            ctx.fillStyle = '#2A2438';
+            ctx.beginPath();
+            ctx.ellipse(-7, -2, 3, 4, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Wink eye right
+            ctx.strokeStyle = '#2A2438';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(7, -2, 4, 0.2 * Math.PI, 0.9 * Math.PI);
+            ctx.stroke();
+
+            // Cheek Blushes
+            ctx.fillStyle = '#FFB6C1';
+            ctx.beginPath();
+            ctx.arc(-12, 3, 4, 0, Math.PI * 2);
+            ctx.arc(12, 3, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Playful Devil Tail
+            ctx.strokeStyle = '#2A2438';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(15, 8);
+            ctx.quadraticCurveTo(28, 10, 26, -5);
+            ctx.stroke();
+
+            // Tail Arrowhead
+            ctx.fillStyle = '#FF85A1';
+            ctx.beginPath();
+            ctx.moveTo(26, -12);
+            ctx.lineTo(21, -4);
+            ctx.lineTo(31, -4);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawCafeCinnamon(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Building base
+            ctx.fillStyle = '#FFF8E7';
+            ctx.strokeStyle = '#E8D0B5';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.roundRect(-80, -50, 160, 100, 16);
+            ctx.fill();
+            ctx.stroke();
+
+            // Striped Awning (Pink & White)
+            for (let i = 0; i < 6; i++) {
+                ctx.fillStyle = i % 2 === 0 ? '#FFB6C1' : '#FFFFFF';
+                ctx.beginPath();
+                ctx.roundRect(-85 + i * 28.3, -60, 29, 25, [6, 6, 0, 0]);
+                ctx.fill();
+            }
+
+            // Door
+            ctx.fillStyle = '#BFE6FF';
+            ctx.fillRect(-20, 10, 40, 40);
+
+            // Signboard
+            ctx.fillStyle = '#FFD1DC';
+            ctx.fillRect(-50, -42, 100, 18);
+            ctx.fillStyle = '#70A6FF';
+            ctx.font = 'bold 11px Fredoka, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Café Cinnamon', 0, -29);
+
+            ctx.restore();
+        }
+
+        function drawTree(x, y, color, size) {
+            ctx.save();
+            // Trunk
+            ctx.fillStyle = '#D4A373';
+            ctx.fillRect(x - size * 0.15, y, size * 0.3, size * 0.8);
+
+            // Fluffy Cloud Canopy
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y - size * 0.3, size * 0.6, 0, Math.PI * 2);
+            ctx.arc(x - size * 0.35, y - size * 0.2, size * 0.45, 0, Math.PI * 2);
+            ctx.arc(x + size * 0.35, y - size * 0.2, size * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawFlower(x, y, color, size) {
+            ctx.save();
+            ctx.fillStyle = color;
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * Math.PI * 2) / 5;
+                ctx.beginPath();
+                ctx.arc(x + Math.cos(angle) * size * 0.6, y + Math.sin(angle) * size * 0.6, size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            // Center
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // HUD & UI UPDATES
+        function updateHUD() {
+            // Update Hearts display
+            const container = document.getElementById('heartsContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < player.maxHearts; i++) {
+                if (i < player.hearts) {
+                    container.innerHTML += `<i class="fa-solid fa-heart animate-pulse"></i>`;
+                } else {
+                    container.innerHTML += `<i class="fa-regular fa-heart opacity-40"></i>`;
+                }
+            }
+
+            // Update Recipe counter
+            document.getElementById('recipeCounter').innerText = `${collectedRecipeIds.size} / ${RECIPES.length}`;
+        }
+
+        function renderRecipeBookList() {
+            const list = document.getElementById('recipeList');
+            list.innerHTML = '';
+
+            RECIPES.forEach(r => {
+                const isFound = collectedRecipeIds.has(r.id);
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border-2 flex items-center gap-4 transition ${
+                    isFound ? 'bg-white border-pink-300 shadow-sm' : 'bg-gray-100/70 border-gray-200 opacity-60'
+                }`;
+
+                card.innerHTML = `
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl text-white shadow-sm" style="background-color: ${isFound ? r.color : '#CBD5E1'}">
+                        <i class="fa-solid ${isFound ? r.icon : 'fa-lock'}"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-extrabold text-sm sm:text-base ${isFound ? 'text-gray-800' : 'text-gray-400'}">${r.title}</h3>
+                            <span class="text-xs px-2 py-0.5 rounded-full font-bold ${isFound ? 'bg-pink-100 text-pink-500' : 'bg-gray-200 text-gray-400'}">
+                                ${isFound ? '¡Encontrada!' : r.landmark}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 font-semibold">${isFound ? r.desc : 'Página oculta por Kuromi en el jardín...'}</p>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function triggerVictory() {
+            gameState = 'VICTORY';
+            kuromiNPC.visible = true;
+            kuromiNPC.x = player.x + 60;
+            kuromiNPC.y = player.y;
+
+            audio.win();
+
+            // Populate summary in victory modal
+            const summary = document.getElementById('victoryRecipesSummary');
+            summary.innerHTML = '';
+            RECIPES.forEach(r => {
+                summary.innerHTML += `
+                    <div class="flex items-center gap-2 p-1.5 bg-pink-50 rounded-xl">
+                        <i class="fa-solid ${r.icon} text-pink-400"></i>
+                        <span class="truncate">${r.title}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('hudOverlay').classList.add('hidden');
+            document.getElementById('touchControls').classList.add('hidden');
+            document.getElementById('victoryScreen').classList.remove('hidden');
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAME_OVER';
+            document.getElementById('hudOverlay').classList.add('hidden');
+            document.getElementById('touchControls').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        // EVENT LISTENERS FOR MODALS & BUTTONS
+        document.getElementById('btnStartGame').addEventListener('click', () => {
+            audio.init();
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('hudOverlay').classList.remove('hidden');
+            document.getElementById('touchControls').classList.remove('hidden');
+            gameState = 'PLAYING';
+            initGame();
+        });
+
+        document.getElementById('btnOpenBook').addEventListener('click', () => {
+            renderRecipeBookList();
+            document.getElementById('recipeModal').classList.remove('hidden');
+        });
+
+        document.getElementById('btnCloseBook').addEventListener('click', () => {
+            document.getElementById('recipeModal').classList.add('hidden');
+        });
+
+        document.getElementById('btnMute').addEventListener('click', () => {
+            audio.muted = !audio.muted;
+            const icon = document.getElementById('muteIcon');
+            if (audio.muted) {
+                icon.className = 'fa-solid fa-volume-xmark text-pink-400';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-sky-500';
+            }
+        });
+
+        document.getElementById('btnRestartGame').addEventListener('click', () => {
+            document.getElementById('victoryScreen').classList.add('hidden');
+            document.getElementById('hudOverlay').classList.remove('hidden');
+            document.getElementById('touchControls').classList.remove('hidden');
+            gameState = 'PLAYING';
+            initGame();
+        });
+
+        document.getElementById('btnRetryGame').addEventListener('click', () => {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('hudOverlay').classList.remove('hidden');
+            document.getElementById('touchControls').classList.remove('hidden');
+            gameState = 'PLAYING';
+            initGame();
+        });
+
+        // Initialize and start animation loop on page load
+        window.onload = function() {
+            initGame();
+            draw();
+        };
+    </script>
+</body>
+</html>
